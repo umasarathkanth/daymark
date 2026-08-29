@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account and personalized reflection settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "nudgesEnabled": { "type": "boolean" },
+            "quietHoursStart": { "type": "string" },
+            "quietHoursEnd": { "type": "string" },
+            "maxNudgesPerDay": { "type": "number" },
+            "preferredInput": { "type": "string" },
+            "personalizationLevel": { "type": "string" }
+          }
+        }
+      }
+    },
+    "JournalEntry": {
+      "title": "Journal Entry",
+      "description": "Raw check-in reflection and extracted structured metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "inputMode": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "analysis": {
+          "type": "object",
+          "properties": {
+            "mood": { "type": "string" },
+            "emotions": { "type": "array", "items": { "type": "string" } },
+            "key_events": { "type": "array", "items": { "type": "string" } },
+            "themes": { "type": "array", "items": { "type": "string" } },
+            "goals": { "type": "array", "items": { "type": "string" } },
+            "concerns": { "type": "array", "items": { "type": "string" } },
+            "behavioral_signals": { "type": "array", "items": { "type": "string" } },
+            "emotional_tone": { "type": "string" },
+            "importance": { "type": "number" }
+          }
+        }
+      }
+    },
+    "Memory": {
+      "title": "Personal Memory",
+      "description": "Long-term searchable memory unit extracted from reflections",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "entryId": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "content": { "type": "string" },
+        "themes": { "type": "array", "items": { "type": "string" } },
+        "goals": { "type": "array", "items": { "type": "string" } },
+        "concerns": { "type": "array", "items": { "type": "string" } },
+        "behavioral_signals": { "type": "array", "items": { "type": "string" } },
+        "importance": { "type": "number" }
+      }
+    },
+    "TimelineThread": {
+      "title": "Timeline Thread",
+      "description": "Longitudinal pattern syntheses connecting historical events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "theme": { "type": "string" },
+        "stage": { "type": "string" },
+        "pattern": { "type": "string" },
+        "insight": { "type": "string" },
+        "groundedEvidence": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string" },
+        "progression": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "Nudge": {
+      "title": "Autonomous Nudge",
+      "description": "Behavioral nudge record with policy checks and outcome feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "reason": { "type": "string" },
+        "intervention_type": { "type": "string" },
+        "friction_level": { "type": "string" },
+        "confidence": { "type": "number" },
+        "message": { "type": "string" },
+        "status": { "type": "string" },
+        "policyPassed": { "type": "boolean" },
+        "policyNotes": { "type": "string" },
+        "outcome": { "type": "string" },
+        "outcomeTimestamp": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Personal user profile and preferences"
+    },
+    "/users/{userId}/journalEntries/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "User journal entries"
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Extracted searchable personal memories"
+    },
+    "/users/{userId}/timelineThreads/{threadId}": {
+      "schema": "TimelineThread",
+      "description": "Longitudinal insight threads"
+    },
+    "/users/{userId}/nudges/{nudgeId}": {
+      "schema": "Nudge",
+      "description": "Autonomous nudge events and user outcomes"
+    }
+  }
+}

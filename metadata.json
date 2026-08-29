@@ -1,0 +1,7 @@
+{
+  "name": "DAYMARK",
+  "description": "Make a mark on your day. A calm, personal reflection space with longitudinal memory and gentle behavioral insights.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
