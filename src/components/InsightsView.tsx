@@ -183,6 +183,26 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
         </div>
       </div>
 
+      {/* Guest/Unauthenticated Notice */}
+      {(!userProfile || userProfile.isGuest) && (
+        <div className="mb-6 p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-amber-950 animate-fadeIn">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>
+              {userProfile?.isGuest 
+                ? 'Guest Mode: Pattern synthesis is session-only. Sign in to save multi-day longitudinal timelines permanently to your Firebase account.'
+                : 'Sign in to run longitudinal pattern synthesis and save behavioral timelines to your Firebase account.'}
+            </span>
+          </div>
+          <button
+            onClick={onOpenAuth}
+            className="px-3 py-1.5 rounded-lg bg-stone-900 text-white font-semibold hover:bg-stone-800 transition-colors shadow-2xs shrink-0 self-start sm:self-auto cursor-pointer"
+          >
+            Sign In to Save
+          </button>
+        </div>
+      )}
+
       {/* Main Insights Content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 

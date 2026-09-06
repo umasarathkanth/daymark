@@ -22,7 +22,8 @@ import {
   onAuthStateChanged, 
   signOut, 
   syncUserProfile, 
-  getOrCreateGuestProfile,
+  createGuestProfile,
+  cleanupLegacyGuestStorage,
   getUserEntities,
   saveUserEntity
 } from './lib/firebase';
@@ -52,8 +53,11 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Firebase Auth State Listener & Auto-Initializer
+  // Firebase Auth State Listener
   useEffect(() => {
+    // Purge any legacy guest keys stored in localStorage from earlier app versions
+    cleanupLegacyGuestStorage();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
@@ -64,15 +68,31 @@ export default function App() {
           console.warn('Notice syncing profile:', err);
         }
       } else {
-        // Initialize persistent local guest profile cleanly
-        const guestProfile = getOrCreateGuestProfile();
-        setUserProfile(guestProfile);
-        await loadUserData(guestProfile.uid, guestProfile);
+        // Requirement: Opening the app should NOT automatically create or log in a guest account.
+        // Unauthenticated visitor: Home page remains accessible.
+        setUserProfile(null);
+        setEntries([]);
+        setMemories([]);
+        setThreads([]);
+        setNudges([]);
       }
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Explicit action to start a temporary, session-only guest experience
+  const handleContinueAsGuest = async () => {
+    const guestProfile = createGuestProfile();
+    setUserProfile(guestProfile);
+    // Seed temporary session-only arc for the guest to explore
+    const seeded = await seedDemoArc(guestProfile);
+    setEntries(seeded.entries);
+    setMemories(seeded.memories);
+    setThreads([seeded.thread]);
+    setNudges(seeded.nudges);
+    showToast('Started guest session (temporary • resets on reload)');
+  };
 
   // Load all user collections from isolated Firestore paths or local cache
   const loadUserData = async (uid: string, profile?: UserProfile | null) => {
@@ -112,7 +132,7 @@ export default function App() {
 
   const handleSeedDemoData = async () => {
     if (!userProfile) {
-      setIsAuthModalOpen(true);
+      handleContinueAsGuest();
       return;
     }
 
@@ -140,7 +160,11 @@ export default function App() {
     if (thread) {
       setThreads((prev) => [thread, ...prev.filter((t) => t.id !== thread.id)]);
     }
-    showToast('Reflection analyzed, timeline updated, and stored in personal memory!');
+    if (userProfile?.isGuest) {
+      showToast('Reflection analyzed and stored in temporary guest session!');
+    } else {
+      showToast('Reflection analyzed, timeline updated, and stored in personal memory!');
+    }
   };
 
   const handleUpdateNudgeStatus = async (nudgeId: string, status: NudgeRecord['status'], outcome?: string) => {
@@ -158,7 +182,7 @@ export default function App() {
     });
     setNudges(updatedNudges);
 
-    // Update persistently
+    // Update persistently if authenticated
     const nudgeToUpdate = updatedNudges.find((n) => n.id === nudgeId);
     if (nudgeToUpdate) {
       await saveUserEntity(userProfile.uid, 'nudges', nudgeId, nudgeToUpdate);
@@ -166,7 +190,20 @@ export default function App() {
   };
 
   const handleTriggerResynthesis = async () => {
-    if (!userProfile || memories.length === 0) return;
+    if (!userProfile) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (userProfile.isGuest) {
+      showToast('Longitudinal pattern synthesis requires a signed-in account.');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (memories.length === 0) {
+      showToast('No reflections found to synthesize.');
+      return;
+    }
+
     try {
       setIsProcessing(true);
       const current = entries[0] || { content: memories[0].content };
@@ -195,13 +232,20 @@ export default function App() {
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    if (auth.currentUser) {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.warn('Sign out notice:', err);
+      }
+    }
     setUserProfile(null);
     setEntries([]);
     setMemories([]);
     setThreads([]);
     setNudges([]);
-    showToast('Signed out successfully.');
+    cleanupLegacyGuestStorage();
+    showToast('Session ended.');
   };
 
   const activeNudgesCount = nudges.filter((n) => n.status === 'sent' && n.policyResult.passed).length;
@@ -215,6 +259,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         userProfile={userProfile}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+        onContinueAsGuest={handleContinueAsGuest}
         onSignOut={handleSignOut}
         onOpenActivity={() => setIsActivityModalOpen(true)}
         onSeedDemo={handleSeedDemoData}
@@ -238,6 +283,7 @@ export default function App() {
           <HomeView
             userProfile={userProfile}
             onOpenAuth={() => setIsAuthModalOpen(true)}
+            onContinueAsGuest={handleContinueAsGuest}
             onNavigateToReflect={(initialText, autoVoice) => {
               setDraftReflectText(initialText || '');
               setAutoOpenVoiceReflect(!!autoVoice);
@@ -326,10 +372,19 @@ export default function App() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={(profile) => {
+        onSuccess={async (profile) => {
           setUserProfile(profile);
-          loadUserData(profile.uid, profile);
-          showToast(`Signed in as ${profile.displayName}`);
+          if (profile.isGuest) {
+            const seeded = await seedDemoArc(profile);
+            setEntries(seeded.entries);
+            setMemories(seeded.memories);
+            setThreads([seeded.thread]);
+            setNudges(seeded.nudges);
+            showToast('Started guest session (temporary • resets on reload)');
+          } else {
+            await loadUserData(profile.uid, profile);
+            showToast(`Signed in as ${profile.displayName}`);
+          }
         }}
       />
 

@@ -88,8 +88,40 @@ export async function syncUserProfile(user: User): Promise<UserProfile> {
 /**
  * Update user preferences
  */
+/**
+ * Helper to check if a UID represents a temporary guest session
+ */
+export function isGuestUid(uid: string): boolean {
+  return typeof uid === 'string' && uid.startsWith('guest_');
+}
+
+/**
+ * Cleans up any legacy guest keys stored in localStorage from earlier versions
+ */
+export function cleanupLegacyGuestStorage(): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('guest') || key.startsWith('daymark_guest'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {}
+}
+
+/**
+ * Updates user preferences in Firestore for authenticated users.
+ * Guest preferences are held strictly in-memory and not persisted.
+ */
 export async function updateUserPreferences(uid: string, preferences: Partial<UserPreferences>): Promise<void> {
-  // Update in localStorage
+  if (isGuestUid(uid)) {
+    return; // Guest preferences are session-only and not persisted
+  }
+
+  // Update in localStorage for authenticated user
   try {
     const localProfRaw = localStorage.getItem(`daymark_profile_${uid}`);
     if (localProfRaw) {
@@ -116,8 +148,8 @@ export async function updateUserPreferences(uid: string, preferences: Partial<Us
 
 /**
  * Safe entity persistence:
- * If authenticated with Firebase Auth (and user matches), persists to Firestore.
- * Always mirrors to localStorage for offline access and guest sessions.
+ * - If user is a Guest: NO-OP. Guest data is held purely in-memory in React state and NEVER saved to Firestore or localStorage.
+ * - If user is authenticated with Firebase Auth: Persists to Firestore and mirrors to localStorage for offline access.
  */
 export async function saveUserEntity(
   uid: string,
@@ -125,9 +157,14 @@ export async function saveUserEntity(
   docId: string,
   data: any
 ): Promise<void> {
+  // STRICT RULE: Guest data must NOT be saved to Firestore or permanently persisted.
+  if (isGuestUid(uid)) {
+    return;
+  }
+
   const sanitized = sanitizeFirestorePayload(data);
 
-  // 1. Update localStorage cache
+  // 1. Update localStorage cache for authenticated user
   try {
     const key = `daymark_${collectionName}_${uid}`;
     const raw = localStorage.getItem(key);
@@ -156,13 +193,18 @@ export async function saveUserEntity(
 
 /**
  * Safe entities retrieval:
- * If authenticated, fetches from Firestore and updates localStorage cache.
- * If not authenticated (guest) or if network/permission error occurs, loads from localStorage.
+ * - If Guest: Returns empty list. Guest mode uses temporary in-memory session data only.
+ * - If Authenticated: Fetches from Firestore and updates localStorage cache.
  */
 export async function getUserEntities<T = any>(
   uid: string,
   collectionName: string
 ): Promise<T[]> {
+  // Guest mode never reads from persistent stores
+  if (isGuestUid(uid)) {
+    return [];
+  }
+
   // Try Firestore if authenticated
   if (auth.currentUser && auth.currentUser.uid === uid) {
     try {
@@ -181,7 +223,7 @@ export async function getUserEntities<T = any>(
     }
   }
 
-  // Fallback to localStorage cache
+  // Fallback to localStorage cache for authenticated user
   try {
     const raw = localStorage.getItem(`daymark_${collectionName}_${uid}`);
     if (raw) {
@@ -198,6 +240,8 @@ export async function getUserEntities<T = any>(
  * Purges all user entities from both localStorage and Firestore (if authenticated)
  */
 export async function purgeUserData(uid: string): Promise<void> {
+  if (isGuestUid(uid)) return;
+
   const collections = ['journalEntries', 'memories', 'timelineThreads', 'nudges', 'conversations'];
   
   // 1. Clear local storage keys
@@ -221,33 +265,27 @@ export async function purgeUserData(uid: string): Promise<void> {
     }
   }
 }
+
 /**
- * Dedicated local guest profile helper. Provides immediate, zero-error session state.
+ * Creates a fresh, temporary in-memory Guest Profile.
+ * IMPORTANT: Does NOT write to localStorage or Firestore.
+ * Guest data resets when the page is refreshed/reloaded.
  */
-export function getOrCreateGuestProfile(): UserProfile {
-  let localGuestUid = localStorage.getItem('daymark_guest_uid');
-  if (!localGuestUid) {
-    localGuestUid = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    localStorage.setItem('daymark_guest_uid', localGuestUid);
-  }
-  const cached = localStorage.getItem(`daymark_profile_${localGuestUid}`);
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch {}
-  }
-  const guestProfile: UserProfile = {
-    uid: localGuestUid,
+export function createGuestProfile(): UserProfile {
+  return {
+    uid: `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     displayName: 'Guest Journaler',
     email: 'guest@daymark.internal',
     createdAt: new Date().toISOString(),
-    preferences: defaultPreferences
+    preferences: defaultPreferences,
+    isGuest: true
   };
-  try {
-    localStorage.setItem(`daymark_profile_${localGuestUid}`, JSON.stringify(guestProfile));
-  } catch {}
-  return guestProfile;
 }
+
+/**
+ * Alias for backward compatibility if referenced elsewhere
+ */
+export const getOrCreateGuestProfile = createGuestProfile;
 
 export async function signInAsDemoUser(): Promise<User | null> {
   try {

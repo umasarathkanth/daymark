@@ -29,6 +29,7 @@ import { VoiceRecorderModal } from './VoiceRecorderModal';
 interface HomeViewProps {
   userProfile: UserProfile | null;
   onOpenAuth: () => void;
+  onContinueAsGuest?: () => void;
   onNavigateToReflect: (initialText?: string, autoOpenVoice?: boolean) => void;
   onNavigateToTimeline: () => void;
   onNavigateToInsights: () => void;
@@ -42,6 +43,7 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({
   userProfile,
   onOpenAuth,
+  onContinueAsGuest,
   onNavigateToReflect,
   onNavigateToTimeline,
   onNavigateToInsights,
@@ -200,6 +202,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 {prompt}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Unauthenticated exploration banner with explicit Continue as Guest alongside Sign In */}
+        {!userProfile && (
+          <div className="mt-5 p-3.5 bg-stone-100/80 border border-stone-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-stone-600 animate-fadeIn">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Explore DAYMARK with a temporary session, or sign in to save your personal reflections to Firebase.</span>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                id="home-banner-continue-guest-btn"
+                onClick={onContinueAsGuest}
+                className="px-3 py-1.5 rounded-lg bg-white border border-stone-200 text-stone-800 font-medium hover:bg-stone-50 transition-colors shadow-2xs cursor-pointer"
+              >
+                Continue as Guest
+              </button>
+              <button
+                id="home-banner-signin-btn"
+                onClick={onOpenAuth}
+                className="px-3 py-1.5 rounded-lg bg-stone-900 text-white font-semibold hover:bg-stone-800 transition-colors shadow-2xs cursor-pointer"
+              >
+                Sign In
+              </button>
+            </div>
           </div>
         )}
       </div>

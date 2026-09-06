@@ -145,6 +145,7 @@ export interface UserProfile {
   email: string;
   createdAt: string;
   preferences: UserPreferences;
+  isGuest?: boolean;
 }
 
 export interface AIActivityStep {

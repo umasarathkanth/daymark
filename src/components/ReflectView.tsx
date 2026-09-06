@@ -260,6 +260,17 @@ export const ReflectView: React.FC<ReflectViewProps> = ({
         <p className="text-xs sm:text-sm text-stone-600 mt-1.5">
           Speak or write freely. Gemini analyzes your emotional tone, extracts long-term patterns, and keeps your journey connected.
         </p>
+        {userProfile?.isGuest && (
+          <div className="mt-3 inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-100/70 border border-amber-200 text-amber-900 text-[11px]">
+            <span>Guest session: Reflections reset upon refresh.</span>
+            <button
+              onClick={onOpenAuth}
+              className="underline font-semibold hover:text-stone-900 ml-1 cursor-pointer"
+            >
+              Sign in to save permanently
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Journal Writing Box */}

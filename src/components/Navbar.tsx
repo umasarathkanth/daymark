@@ -20,6 +20,7 @@ interface NavbarProps {
   setActiveTab: (tab: NavTabType) => void;
   userProfile: UserProfile | null;
   onOpenAuth: () => void;
+  onContinueAsGuest?: () => void;
   onSignOut: () => void;
   onOpenActivity: () => void;
   onSeedDemo: () => void;
@@ -32,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   userProfile,
   onOpenAuth,
+  onContinueAsGuest,
   onSignOut,
   onOpenActivity,
   onSeedDemo,
@@ -167,27 +169,62 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Profile / Auth */}
             {userProfile ? (
               <div className="flex items-center space-x-2 pl-1">
-                <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 font-bold text-xs" title={userProfile.displayName || userProfile.email}>
-                  {(userProfile.displayName?.[0] || 'U').toUpperCase()}
-                </div>
-                <button
-                  id="nav-logout-btn"
-                  onClick={onSignOut}
-                  title="Sign Out"
-                  className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+                {userProfile.isGuest ? (
+                  <div className="flex items-center space-x-1.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-200 shadow-2xs">
+                      Guest Mode
+                    </span>
+                    <button
+                      id="nav-guest-signin-btn"
+                      onClick={onOpenAuth}
+                      className="text-xs font-semibold text-stone-800 hover:text-stone-900 underline underline-offset-2 px-1.5 py-1 rounded transition-colors"
+                      title="Sign in with Firebase to save your reflections permanently"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      id="nav-logout-btn"
+                      onClick={onSignOut}
+                      title="Exit Guest Session"
+                      className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 font-bold text-xs" title={userProfile.displayName || userProfile.email}>
+                      {(userProfile.displayName?.[0] || 'U').toUpperCase()}
+                    </div>
+                    <button
+                      id="nav-logout-btn"
+                      onClick={onSignOut}
+                      title="Sign Out"
+                      className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
-              <button
-                id="nav-signin-btn"
-                onClick={onOpenAuth}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-2xs"
-              >
-                <UserIcon className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  id="nav-continue-guest-btn"
+                  onClick={onContinueAsGuest}
+                  className="hidden sm:inline-flex items-center space-x-1 px-2.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-lg border border-stone-200 transition-colors"
+                >
+                  <span>Continue as Guest</span>
+                </button>
+                <button
+                  id="nav-signin-btn"
+                  onClick={onOpenAuth}
+                  className="flex items-center space-x-1 px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-2xs"
+                >
+                  <UserIcon className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </button>
+              </div>
             )}
           </div>
 

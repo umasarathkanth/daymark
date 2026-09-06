@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { X, Lock, Mail, ShieldCheck, User } from 'lucide-react';
 import { 
   signInWithPopup, 
   googleProvider, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  getOrCreateGuestProfile,
+  createGuestProfile,
   auth,
   syncUserProfile 
 } from '../lib/firebase';
@@ -75,19 +75,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     }
   };
 
-  const handleDemoSignIn = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const guestProfile = getOrCreateGuestProfile();
-      onSuccess(guestProfile);
-      onClose();
-    } catch (err: any) {
-      console.error('Guest access error:', err);
-      setError(err.message || 'Failed to initialize guest session.');
-    } finally {
-      setLoading(false);
-    }
+  const handleContinueAsGuest = () => {
+    const guestProfile = createGuestProfile();
+    onSuccess(guestProfile);
+    onClose();
   };
 
   return (
@@ -148,15 +139,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           <span>Continue with Google</span>
         </button>
 
-        {/* Quick Demo Sign In Button */}
+        {/* Explicit Continue as Guest option */}
         <button
-          id="demo-guest-signin-btn"
-          onClick={handleDemoSignIn}
+          id="continue-as-guest-btn"
+          onClick={handleContinueAsGuest}
           disabled={loading}
-          className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-medium text-sm transition-all shadow-sm mb-4"
+          type="button"
+          className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-amber-50/80 hover:bg-amber-100 text-stone-900 border border-amber-200 font-medium text-sm transition-all shadow-xs mb-4"
         >
-          <Sparkles className="w-4 h-4 text-amber-600" />
-          <span>Instant 1-Click Guest Session</span>
+          <div className="flex items-center space-x-2.5 text-left">
+            <User className="w-4 h-4 text-amber-700 shrink-0" />
+            <div>
+              <div className="font-semibold text-xs sm:text-sm text-stone-900">Continue as Guest</div>
+              <div className="text-[11px] text-stone-500 font-normal">Temporary session • Data resets on reload</div>
+            </div>
+          </div>
+          <span className="text-[11px] font-medium text-amber-800 bg-white px-2 py-0.5 rounded-md border border-amber-200/80">
+            Session Only
+          </span>
         </button>
 
         <div className="relative my-4">

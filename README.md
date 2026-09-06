@@ -72,9 +72,13 @@ ADAPT (Optimize future intervention selection from real user response rates)
 
 ## Mandatory Google Technologies Implemented
 
-1. **Firebase Authentication**: Session management, Google Sign-in, Email/Password, and 1-Click Guest sessions with persistent Firebase UIDs.
+1. **Firebase Authentication & Dual-Mode Access**:
+   - **Accessible Home Page**: Opening the app does NOT automatically create or log in a guest account; the interface is immediately accessible without requiring credentials.
+   - **Explicit "Continue as Guest"**: Provides a zero-friction, temporary session-only exploration mode. All guest journal, memory, and preference data are maintained purely in-memory in client state, never written to Firestore or persisted, and reset completely upon page reload/refresh.
+   - **Authenticated Firebase Accounts**: Google Sign-In and Email authentication provision dedicated Firestore user spaces with permanent data synchronization across devices and reloads.
+   - **Gated Longitudinal Synthesis**: Multi-day pattern synthesis safely requires an authenticated Firebase account to guarantee permanent pattern evolution.
 2. **Multi-Turn Gemini Companion**: True multi-turn context-grounded conversation where Gemini retains previous turns without exposing internal tokens.
-3. **User-Isolated Cloud Firestore**: All private reflections, memories, threads, and nudges are partitioned strictly under `/users/{uid}/*` and guarded with production Firestore Security Rules.
+3. **User-Isolated Cloud Firestore**: All private reflections, memories, threads, and nudges for authenticated users are partitioned strictly under `/users/{uid}/*` and guarded with production Firestore Security Rules.
 4. **Google Cloud Secret Manager**: Production-ready credential access for `GEMINI_API_KEY` keeping privileged secrets entirely off client browsers.
 
 ---
@@ -170,54 +174,74 @@ gcloud run services update personal-gemini-journal \
 
 Every interaction across the product has a verifiable test path:
 
-### Test Case 1: 5-Day Avoidance & Progress Demo Arc
+### Test Case 1: Unauthenticated Home Access & Session-Only Guest Mode
+1. Open the application in a fresh browser session or incognito window.
+2. **Expected Result**: The app opens directly to the Home page without automatically creating or signing into a guest account. Both the navigation bar and the Home banner display explicit **"Continue as Guest"** and **"Sign In"** options.
+3. Click **"Continue as Guest"**.
+4. **Expected Result**: A temporary session starts with a visual *"Guest Mode"* badge. You can write reflections and inspect thoughts in-memory.
+5. Reload/refresh the browser page (`Ctrl+R` / `Cmd+R`).
+6. **Expected Result**: All guest data and session memory reset completely upon refresh. Zero data is persisted to localStorage or Firestore.
+
+### Test Case 2: Authenticated Firebase Persistence Across Refreshes
+1. In the top navigation bar, click **"Sign In"**.
+2. Sign in with your Google account or email.
+3. Add a journal entry in the **Reflect** tab and click **"Reflect & Synthesize"**.
+4. Reload/refresh the browser page.
+5. **Expected Result**: Your user profile and saved reflections persist seamlessly across refreshes, retrieved directly from your isolated `/users/{uid}/*` Firestore collections.
+
+### Test Case 3: Gated Longitudinal Pattern Synthesis
+1. While in Guest Mode, navigate to the **Patterns** (Insights) tab.
+2. Click **"Resynthesize Patterns"**.
+3. **Expected Result**: An informative notice appears explaining that longitudinal synthesis requires an authenticated account to persist behavioral threads across time, prompting the user to Sign In.
+
+### Test Case 4: 5-Day Avoidance & Progress Demo Arc
 1. Click the **"Demo 5-Day Arc"** button in the top navigation bar.
 2. Verify confetti triggers and confirmation toast appears.
 3. Switch to the **Timeline Thread** tab.
 4. **Expected Result**: Verify the longitudinal pattern displays `fear → avoidance → small action → progress → recurrence` with 5 milestone nodes (Day 1 through Day 12) grounded in user quotes.
 
-### Test Case 2: Frictionless Journal Check-in & Gemini Analysis
+### Test Case 5: Frictionless Journal Check-in & Gemini Analysis
 1. Navigate to the **Check-in** tab.
 2. Type: *"I spent 30 minutes cleaning my desk today instead of writing the core integration code."*
 3. Click **"Reflect & Synthesize"**.
 4. **Expected Result**: Structured analysis card appears with Emotional Tone, Extracted Themes ("Avoidance Loop", "Task Resistance"), and Behavioral Signals ("Productive Procrastination").
 
-### Test Case 3: 60-Second Voice Check-in
+### Test Case 6: 60-Second Voice Check-in
 1. In the Check-in tab, click **"60s Voice Input"**.
 2. Grant microphone permission if prompted.
 3. Speak a sentence into the microphone.
 4. **Expected Result**: Audio wave visualizer pulses in real-time with volume levels, speech is transcribed live, and clicking **"Complete Voice Check-in"** populates the reflection for analysis.
 
-### Test Case 4: Longitudinal Timeline Synthesis & Theme Filtering
+### Test Case 7: Longitudinal Timeline Synthesis & Theme Filtering
 1. Navigate to the **Timeline Thread** tab.
 2. Click theme filter chips (e.g. *"Creative Resistance"*).
 3. Type in the search box to search for *"helper function"*.
 4. **Expected Result**: The node timeline and raw stored memories dynamically filter to matching items.
 
-### Test Case 5: Multi-Turn Conversational Reflection
+### Test Case 8: Multi-Turn Conversational Reflection
 1. Navigate to the **Reflection** tab.
 2. Select an active focus entry or choose *"All Memories & History"*.
 3. Type or click a suggested prompt chip: *"How did taking a small action help me unblock my project in the past?"*
 4. Click **Send**.
 5. **Expected Result**: Gemini responds conversationally in 2-4 sentences, recalling Day 6's 10-minute helper function, displaying a *"Grounded in Memory"* evidence card without exposing chain-of-thought tokens.
 
-### Test Case 6: Autonomous Nudge Agent Execution & Time Simulator
+### Test Case 9: Autonomous Nudge Agent Execution & Time Simulator
 1. Navigate to the **Nudge Agent** tab.
 2. In the Time Simulator sandbox, adjust the slider to **48 Hours** (simulating 2 days of missed check-ins).
 3. Ensure local time is set to **14:00 (2:00 PM)**.
 4. Click **"Run Nudge Agent Now"**.
 5. **Expected Result**: The agent observes the 48-hour gap, reasons via Gemini, validates deterministic guardrails, and renders an active low-friction intervention card (e.g. 60-second voice prompt).
 
-### Test Case 7: Deterministic Quiet Hours Policy Guardrail
+### Test Case 10: Deterministic Quiet Hours Policy Guardrail
 1. In the Nudge Agent sandbox, drag the time slider to **23:00 (11:00 PM)**.
 2. Click **"Run Nudge Agent Now"**.
 3. **Expected Result**: The policy inspector catches the quiet hours violation (22:00 - 08:00) and safely blocks the nudge from interrupting the user.
 
-### Test Case 8: Behavioral Outcome & Adaptation
+### Test Case 11: Behavioral Outcome & Adaptation
 1. On an active nudge card in the Nudge Center, click **"Done"** or **"60s Voice Note"**.
 2. **Expected Result**: The status transitions from `sent` to `completed`/`responded`, confetti triggers, and the Behavioral Adaptation progress bar updates the engagement percentage.
 
-### Test Case 9: Privacy, Responsible AI & Data Export
+### Test Case 12: Privacy, Responsible AI & Data Export
 1. Navigate to the **Settings** tab.
 2. Adjust quiet hours or daily frequency cap and click **"Save Settings"**.
 3. Click **"Export Complete Archive (JSON)"**.
